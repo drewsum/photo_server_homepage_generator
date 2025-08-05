@@ -24,11 +24,11 @@ def main():
     template = env.get_template('template.html')
 
     # render data in jinja template
-    demoText = template.render(album_data=data)
+    output_text = template.render(album_data=data)
 
     # print(inviteText)
     with open(f"index.html", mode='w') as f:
-        f.write(demoText)
+        f.write(output_text)
 
 
 if __name__== "__main__":
