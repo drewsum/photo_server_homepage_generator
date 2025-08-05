@@ -1,7 +1,18 @@
 
 from jinja2 import Environment, FileSystemLoader
 
-data = {"items": ["apple", "banana", "cherry"]}
+data = [
+    {
+        "name": "roll1",
+        "description": "First roll of film yay!",
+        "link": "www.google.com"
+    },
+    {
+        "name": "roll2",
+        "description": "My second roll of film",
+        "link": "www.yahoo.com"
+    }
+]
 
 
 def main():
@@ -13,7 +24,7 @@ def main():
     template = env.get_template('template.html')
 
     # render data in jinja template
-    demoText = template.render(data)
+    demoText = template.render(data=data)
 
     # print(inviteText)
     with open(f"index.html", mode='w') as f:
