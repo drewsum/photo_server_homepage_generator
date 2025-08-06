@@ -5,18 +5,6 @@ import requests
 from datetime import datetime
 import json
 
-data = [
-    {
-        "name": "roll1",
-        "description": "First roll of film yay!",
-        "link": "www.google.com"
-    },
-    {
-        "name": "roll2",
-        "description": "My second roll of film",
-        "link": "www.yahoo.com"
-    }
-]
 
 def get_all_shared_links(api_key, url):
 
@@ -45,8 +33,8 @@ def main():
 
     # get all shared links from immich server
     shared_links_list = get_all_shared_links(immich_api_key, immich_server_url)
-    for link in shared_links_list:
-        print(f"found shared link id: {link['id']}")
+    for shared_link in shared_links_list:
+        print(f"found shared link id: {shared_link['id']}")
 
     # Set up the Jinja2 environment to load templates from the current directory
     env = Environment(loader=FileSystemLoader('./templates/'))
@@ -60,18 +48,35 @@ def main():
     # Format the datetime object into a datestring
     date_string = now.strftime("%Y-%m-%d %H:%M:%S") 
 
+    # append found immich shared links into data structure for jinja template
+    immich_data = []
+    for shared_link in shared_links_list:
+        if "Public: True" in shared_link['album']["description"]:
+            immich_data.append(
+                {
+                    "name" : shared_link['album']["albumName"],
+                    "description" : shared_link['album']["description"],
+                    "link" : "www.google.com"
+                }
+            )
+
+
     # create data for template
     html_data = {
-        "album_data": data, 
+        "album_data": immich_data, 
         "date": date_string
         }
 
     # render data in jinja template
     output_text = template.render(input_data=html_data)
 
+    print("Rendered jinja text")
+
     # print(inviteText)
     with open(f"index.html", mode='w') as f:
         f.write(output_text)
+        print("Generated index.html")
+        
 
 if __name__== "__main__":
     main()
