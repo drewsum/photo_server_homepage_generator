@@ -59,7 +59,7 @@ def main():
                     "date" : shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0],
                     "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Camera:")[0],
                     "camera" : shared_link['album']["description"].split("Camera:")[1].split("Lens:")[0],
-                    "link" : "www.google.com"
+                    "link" : "https://photos.drewsum.us/share/" + shared_link['key']
                 }
             )
 

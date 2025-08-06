@@ -24,18 +24,16 @@
                     <th>Date Captured</th>
                     <th>Film Stock</th>
                     <th>Camera</th>
-                    <th>Link</th>
                 </tr>
             </thead>
             <tbody>
                 {% for album in input_data.album_data %}
                 <tr>
-                    <td>{{ album.name }}</td>
+                    <td> <a href={{ album.link }} target="_blank">{{ album.name }} </a> </td>
                     <td>{{ album.description }}</td>
                     <td>{{ album.date }}</td>
                     <td>{{ album.film_stock }}</td>
                     <td>{{ album.camera }}</td>
-                    <td>{{ album.link }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
