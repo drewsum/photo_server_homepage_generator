@@ -55,7 +55,8 @@ def main():
             immich_data.append(
                 {
                     "name" : shared_link['album']["albumName"],
-                    "description" : shared_link['album']["description"],
+                    "description" : shared_link['album']["description"].split("Date Captured:")[0],
+                    "date" : shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0],
                     "link" : "www.google.com"
                 }
             )
