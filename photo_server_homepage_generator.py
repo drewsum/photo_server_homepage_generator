@@ -4,7 +4,7 @@ import os
 import requests
 from datetime import datetime
 import json
-
+from dotenv import load_dotenv
 
 def get_all_shared_links(api_key, url):
 
@@ -19,17 +19,32 @@ def get_all_shared_links(api_key, url):
 
 def main():
 
-    # try to find server environment variables
-    immich_server_url = os.getenv("IMMICH_SERVER")
-    if immich_server_url is not None:
-        print("Found server URL env variable: {}".format(immich_server_url))
-    else:
-        print("Could not find IMMICH_SERVER environment variable, please add it!")
-    immich_api_key = os.getenv("IMMICH_API_KEY")
-    if immich_api_key is not None:
-        print("Found Immich API env variable: {}".format(immich_api_key))
-    else:
-        print("Could not find IMMICH_API_KEY environment variable, please add it!")
+    try:
+        load_dotenv()
+        print("Found and loaded .env file")
+        immich_server_url = os.getenv("IMMICH_SERVER")
+        if immich_server_url is not None:
+            print("Found server URL env variable: {}".format(immich_server_url))
+        else:
+            print("Could not find IMMICH_SERVER environment variable, please add it!")
+        immich_api_key = os.getenv("IMMICH_API_KEY")
+        if immich_api_key is not None:
+            print("Found Immich API env variable: {}".format(immich_api_key))
+        else:
+            print("Could not find IMMICH_API_KEY environment variable, please add it!")
+    except:
+        print("Could not find .env file, checking windows variables")
+        # try to find server environment variables
+        immich_server_url = os.getenv("IMMICH_SERVER")
+        if immich_server_url is not None:
+            print("Found server URL env variable: {}".format(immich_server_url))
+        else:
+            print("Could not find IMMICH_SERVER environment variable, please add it!")
+        immich_api_key = os.getenv("IMMICH_API_KEY")
+        if immich_api_key is not None:
+            print("Found Immich API env variable: {}".format(immich_api_key))
+        else:
+            print("Could not find IMMICH_API_KEY environment variable, please add it!")
 
     # get all shared links from immich server
     shared_links_list = get_all_shared_links(immich_api_key, immich_server_url)
