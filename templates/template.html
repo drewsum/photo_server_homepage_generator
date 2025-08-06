@@ -15,7 +15,43 @@
     <body class="container">
         <h1>Public Albums</h1>
         <div style="margin-top: 2em;"></div>
-        <table class="table table-striped table-bordered">
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search...">
+        <script>
+        function filterTable() {
+            var input, filter, table, tr, td, i, txtValue;
+            input = document.getElementById("searchInput");
+            filter = input.value.toUpperCase();
+            table = document.getElementById("albumTable");
+            tr = table.getElementsByTagName("tr");
+
+            for (i = 0; i < tr.length; i++) {
+                // Skip the header row
+                if (tr[i].getElementsByTagName("th").length > 0) {
+                continue;
+                }
+
+                let foundMatch = false;
+                // Iterate through all columns in the current row
+                for (let j = 0; j < tr[i].getElementsByTagName("td").length; j++) {
+                td = tr[i].getElementsByTagName("td")[j];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    foundMatch = true;
+                    break; // Found a match in this row, no need to check other columns
+                    }
+                }
+                }
+
+                if (foundMatch) {
+                tr[i].style.display = "";
+                } else {
+                tr[i].style.display = "none";
+                }
+            }
+        }
+        </script>
+        <table class="table table-striped table-bordered" id="albumTable">
             <thead>
                 <tr>
                     <th>Name</th>
