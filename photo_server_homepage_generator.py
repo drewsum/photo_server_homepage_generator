@@ -1,5 +1,8 @@
 
 from jinja2 import Environment, FileSystemLoader
+import os
+from datetime import datetime, date, time
+import json
 
 data = [
     {
@@ -23,8 +26,20 @@ def main():
     # Load the template
     template = env.get_template('template.html')
 
+    # Create a datetime object
+    now = datetime.now()
+
+    # Format the datetime object into a datestring
+    date_string = now.strftime("%Y-%m-%d %H:%M:%S") 
+
+    # create data for template
+    html_data = {
+        "album_data": data, 
+        "date": date_string
+        }
+
     # render data in jinja template
-    output_text = template.render(album_data=data)
+    output_text = template.render(input_data=html_data)
 
     # print(inviteText)
     with open(f"index.html", mode='w') as f:

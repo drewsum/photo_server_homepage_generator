@@ -25,7 +25,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for album in album_data %}
+                {% for album in input_data.album_data %}
                 <tr>
                     <td>{{ album.name }}</td>
                     <td>{{ album.description }}</td>
@@ -35,4 +35,10 @@
             </tbody>
         </table>
     </body>
+    <footer class="container">
+        <div style="margin-top: 2em;"></div>
+        {% block footer %}
+            <p class="fw-bold"></pclass>&copy; Drew Maatman. Page generated at {{ input_data.date }}</p>
+        {% endblock %}
+    </footer>
 </html>
