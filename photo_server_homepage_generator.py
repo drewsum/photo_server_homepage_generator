@@ -20,6 +20,18 @@ data = [
 
 def main():
 
+    # try to find server environment variables
+    immich_server_url = os.getenv("IMMICH_SERVER")
+    if immich_server_url is not None:
+        print("Found server URL env variable: {}".format(immich_server_url))
+    else:
+        print("Could not find IMMICH_SERVER environment variable, please add it!")
+    immich_api_key = os.getenv("IMMICH_API_KEY")
+    if immich_api_key is not None:
+        print("Found Immich API env variable: {}".format(immich_api_key))
+    else:
+        print("Could not find IMMICH_API_KEY environment variable, please add it!")
+
     # Set up the Jinja2 environment to load templates from the current directory
     env = Environment(loader=FileSystemLoader('./templates/'))
 
@@ -44,7 +56,6 @@ def main():
     # print(inviteText)
     with open(f"index.html", mode='w') as f:
         f.write(output_text)
-
 
 if __name__== "__main__":
     main()
