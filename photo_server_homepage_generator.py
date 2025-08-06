@@ -54,9 +54,11 @@ def main():
         if "Public: True" in shared_link['album']["description"]:
             immich_data.append(
                 {
-                    "name" : shared_link['album']["albumName"],
+                    "name" : shared_link['album']["albumName"].split(" (")[0],
                     "description" : shared_link['album']["description"].split("Date Captured:")[0],
                     "date" : shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0],
+                    "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Camera:")[0],
+                    "camera" : shared_link['album']["description"].split("Camera:")[1].split("Lens:")[0],
                     "link" : "www.google.com"
                 }
             )
