@@ -1,7 +1,8 @@
 
 from jinja2 import Environment, FileSystemLoader
 import os
-from datetime import datetime, date, time
+import requests
+from datetime import datetime
 import json
 
 data = [
