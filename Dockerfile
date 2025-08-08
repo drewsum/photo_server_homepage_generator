@@ -1,7 +1,12 @@
-FROM ubuntu/python:3.13-25.04_stable
+FROM python:3.9
 
-ADD photo_server_homepage_generator.py .
+WORKDIR /app
 
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-CMD [“python”, “photo_server_homepage_generator.py”]
+# Copy the application code
+COPY . .
+
+CMD python photo_server_homepage_generator.py
