@@ -90,8 +90,7 @@ def main():
 
     print("Rendered jinja text")
 
-    # print(inviteText)
-    with open(f"index.html", mode='w') as f:
+    with open(f"/output/index.html", mode='w') as f:
         f.write(output_text)
         print("Generated index.html")
         
