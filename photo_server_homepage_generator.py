@@ -71,7 +71,7 @@ def main():
                 {
                     "name" : shared_link['album']["albumName"].split(" (")[0],
                     "description" : shared_link['album']["description"].split("Date Captured:")[0],
-                    "date" : shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0],
+                    "date" : datetime.strptime((shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0]).strip("\n").strip(" ").replace("/", ""), "%m%d%Y").strftime("%Y-%m-%d"),
                     "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Camera:")[0],
                     "camera" : shared_link['album']["description"].split("Camera:")[1].split("Lens:")[0],
                     "link" : "https://photos.drewsum.us/share/" + shared_link['key']
@@ -79,9 +79,12 @@ def main():
             )
 
 
+    # sort by capture date
+    sorted_immich_data = sorted(immich_data, key=lambda x: x['date'], reverse=True)
+
     # create data for template
     html_data = {
-        "album_data": immich_data, 
+        "album_data": sorted_immich_data, 
         "date": date_string
         }
 
