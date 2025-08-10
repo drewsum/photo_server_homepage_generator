@@ -72,7 +72,7 @@ def main():
                     "name" : shared_link['album']["albumName"].split(" (")[0],
                     "description" : shared_link['album']["description"].split("Date Captured:")[0],
                     "date" : datetime.strptime((shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0]).strip("\n").strip(" ").replace("/", ""), "%m%d%Y").strftime("%Y-%m-%d"),
-                    "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Camera:")[0],
+                    "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Development Notes:")[0].split("Camera:")[0],
                     "camera" : shared_link['album']["description"].split("Camera:")[1].split("Lens:")[0],
                     "link" : "https://photos.drewsum.us/share/" + shared_link['key']
                 }
