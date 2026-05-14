@@ -27,6 +27,14 @@ The container must include:
 - a writable output location for `index.html`
 - an `.env` file containing the Immich server configuration
 
+## Within Truenas Scale:
+
+The container can be built from within the Truenas Scale shell via docker file. Run `docker build -t photo-home-page-gen`
+
+Then, set up a cron within truenas scale, running this bash command to run the container: `sudo docker run --volume /mnt/drewpool/drewset/photo-server-landing-page:/output photo-home-page-gen`
+
+This will run the container and mount the container's output folder within the container to /mnt/drewpool/drewset/photo-server-landing-page, which is where an nginx server is looking for html to serve
+
 ## Environment variables
 
 The application reads the following variables from `.env`:
