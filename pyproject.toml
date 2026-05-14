@@ -1,3 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "photo-server-homepage-generator"
+version = "0.1.0"
+description = "Generate a photo server homepage from Immich shared links."
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["immich", "photo server", "homepage", "gallery", "jinja2"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = [
+  "requests",
+  "python-dotenv",
+  "Jinja2",
+]
+optional-dependencies = { dev = ["pytest>=8.3.4", "ruff>=0.8.4"] }
+
+[tool.setuptools]
+py-modules = ["photo_server_homepage_generator"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
