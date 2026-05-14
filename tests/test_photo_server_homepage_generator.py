@@ -40,6 +40,40 @@ def test_parse_capture_date(description, expected):
     assert parse_capture_date(description) == expected
 
 
+def test_build_album_data_includes_cover_thumbnail_if_available():
+    with patch(
+        "photo_server_homepage_generator.get_asset_thumbnail_data_url",
+        return_value="data:image/png;base64,TEST",
+    ):
+        shared_links = [
+            {
+                "key": "album-key",
+                "album": {
+                    "albumName": "Test Album (Shared)",
+                    "description": (
+                        "Test description\n"
+                        "Date Captured: 01/01/2025\n"
+                        "Date Scanned: 01/02/2025\n"
+                        "Film Stock: Portra 400\n"
+                        "Camera: Nikon F3\n"
+                        "Lens: 50mm\n"
+                        "Public: True"
+                    ),
+                    "albumThumbnailAssetId": "asset-id",
+                },
+            }
+        ]
+
+        albums = build_album_data(
+            shared_links,
+            share_base_url="https://photos.example/share",
+            immich_server_url="https://immich.example",
+            immich_api_key="api-key",
+        )
+
+    assert albums[0]["cover_thumbnail"] == "data:image/png;base64,TEST"
+
+
 def test_build_album_data_returns_public_albums_sorted_by_date():
     shared_links = [
         {
@@ -91,8 +125,9 @@ def test_build_album_data_returns_public_albums_sorted_by_date():
         "name": "Newer Album",
         "description": "Newer description\n",
         "date": "2025-02-03",
-        "film_stock": " HP5\n",
-        "camera": " Leica M6\n",
+        "film_stock": "HP5",
+        "camera": "Leica M6",
+        "cover_thumbnail": None,
         "link": "https://photos.example/share/newer",
     }
 

@@ -1,3 +1,4 @@
+import base64
 import os
 from datetime import datetime
 
@@ -7,6 +8,8 @@ from jinja2 import Environment, FileSystemLoader
 
 DEFAULT_OUTPUT_PATH = "/output/index.html"
 DEFAULT_SHARE_BASE_URL = "https://photos.drewsum.us/share"
+
+_thumbnail_cache = {}
 
 
 def get_all_shared_links(api_key, url):
@@ -50,7 +53,37 @@ def parse_capture_date(description):
     return datetime.strptime(date_text, "%m%d%Y").strftime("%Y-%m-%d")
 
 
-def build_album_data(shared_links, share_base_url=DEFAULT_SHARE_BASE_URL):
+def get_asset_thumbnail_data_url(server_url, api_key, asset_id):
+    if not server_url or not api_key or not asset_id:
+        return None
+
+    cache_key = (server_url.rstrip("/"), asset_id)
+    if cache_key in _thumbnail_cache:
+        return _thumbnail_cache[cache_key]
+
+    thumbnail_url = f"{server_url.rstrip('/')}/api/assets/{asset_id}/thumbnail"
+    headers = {"Accept": "*/*", "x-api-key": api_key}
+
+    try:
+        response = requests.get(thumbnail_url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        content_type = response.headers.get("content-type", "image/webp")
+        encoded = base64.b64encode(response.content).decode("ascii")
+        data_url = f"data:{content_type};base64,{encoded}"
+        _thumbnail_cache[cache_key] = data_url
+        return data_url
+    except Exception as error:
+        print(f"Could not fetch thumbnail for asset {asset_id}: {error}")
+        return None
+
+
+def build_album_data(
+    shared_links,
+    share_base_url=DEFAULT_SHARE_BASE_URL,
+    immich_server_url=None,
+    immich_api_key=None,
+):
     immich_data = []
     for shared_link in shared_links:
         try:
@@ -59,15 +92,22 @@ def build_album_data(shared_links, share_base_url=DEFAULT_SHARE_BASE_URL):
             if "Public: True" not in description:
                 continue
 
+            cover_asset_id = album.get("albumThumbnailAssetId")
+            cover_thumbnail = get_asset_thumbnail_data_url(
+                immich_server_url, immich_api_key, cover_asset_id
+            )
+
             immich_data.append(
                 {
                     "name": album["albumName"].split(" (")[0],
+                    "cover_thumbnail": cover_thumbnail,
                     "description": description.split("Date Captured:")[0],
                     "date": parse_capture_date(description),
                     "film_stock": description.split("Film Stock:")[1]
                     .split("Development Notes:")[0]
-                    .split("Camera:")[0],
-                    "camera": description.split("Camera:")[1].split("Lens:")[0],
+                    .split("Camera:")[0]
+                    .strip(),
+                    "camera": description.split("Camera:")[1].split("Lens:")[0].strip(),
                     "link": f"{share_base_url}/{shared_link['key']}",
                 }
             )
@@ -100,7 +140,11 @@ def main():
     for shared_link in shared_links_list:
         print(f"found shared link id: {shared_link['id']}")
 
-    sorted_immich_data = build_album_data(shared_links_list)
+    sorted_immich_data = build_album_data(
+        shared_links_list,
+        immich_server_url=immich_server_url,
+        immich_api_key=immich_api_key,
+    )
     output_text = render_homepage(sorted_immich_data)
     print("Rendered jinja text")
 

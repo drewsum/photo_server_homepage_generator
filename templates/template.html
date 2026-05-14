@@ -44,6 +44,19 @@
         max-width: 40rem;
       }
 
+      .cover-cell {
+        width: 5rem;
+      }
+
+      .cover-thumb {
+        max-width: 5rem;
+        max-height: 5rem;
+        display: block;
+        margin: 0 auto;
+        object-fit: cover;
+        border-radius: 0.5rem;
+      }
+
       .filter-row {
         background-color: rgba(255, 255, 255, 0.08);
       }
@@ -89,6 +102,7 @@
               <thead class="table-dark">
                 <tr>
                   <th scope="col">Name</th>
+                  <th scope="col">Cover</th>
                   <th scope="col">Description</th>
                   <th scope="col">Date Captured</th>
                   <th scope="col">Film Stock</th>
@@ -96,10 +110,11 @@
                 </tr>
                 <tr class="filter-row">
                   <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter name..." data-column="0" oninput="filterTableByColumns()" /></th>
-                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter description..." data-column="1" oninput="filterTableByColumns()" /></th>
-                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter date..." data-column="2" oninput="filterTableByColumns()" /></th>
-                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter film stock..." data-column="3" oninput="filterTableByColumns()" /></th>
-                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter camera..." data-column="4" oninput="filterTableByColumns()" /></th>
+                  <th scope="col"></th>
+                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter description..." data-column="2" oninput="filterTableByColumns()" /></th>
+                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter date..." data-column="3" oninput="filterTableByColumns()" /></th>
+                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter film stock..." data-column="4" oninput="filterTableByColumns()" /></th>
+                  <th scope="col"><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter camera..." data-column="5" oninput="filterTableByColumns()" /></th>
                 </tr>
               </thead>
               <tbody>
@@ -110,6 +125,13 @@
                         <a href="{{ album.link | e }}" target="_blank" rel="noopener noreferrer" class="link-light">
                           {{ album.name }}
                         </a>
+                      </td>
+                      <td class="cover-cell text-center">
+                        {% if album.cover_thumbnail %}
+                          <img src="{{ album.cover_thumbnail | e }}" alt="{{ album.name | e }} cover" class="cover-thumb" />
+                        {% else %}
+                          &mdash;
+                        {% endif %}
                       </td>
                       <td class="description-cell">{{ album.description }}</td>
                       <td>{{ album.date }}</td>
