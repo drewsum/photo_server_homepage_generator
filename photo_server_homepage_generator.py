@@ -66,18 +66,21 @@ def main():
     # append found immich shared links into data structure for jinja template
     immich_data = []
     for shared_link in shared_links_list:
-        if "Public: True" in shared_link['album']["description"]:
-            immich_data.append(
-                {
-                    "name" : shared_link['album']["albumName"].split(" (")[0],
-                    "description" : shared_link['album']["description"].split("Date Captured:")[0],
-                    "date" : datetime.strptime((shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0]).strip("\n").strip(" ").replace("/", ""), "%m%d%Y").strftime("%Y-%m-%d"),
-                    "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Development Notes:")[0].split("Camera:")[0],
-                    "camera" : shared_link['album']["description"].split("Camera:")[1].split("Lens:")[0],
-                    "link" : "https://photos.drewsum.us/share/" + shared_link['key']
-                }
-            )
-
+        try:
+            if "Public: True" in shared_link['album']["description"]:
+                immich_data.append(
+                    {
+                        "name" : shared_link['album']["albumName"].split(" (")[0],
+                        "description" : shared_link['album']["description"].split("Date Captured:")[0],
+                        "date" : datetime.strptime((shared_link['album']["description"].split("Date Captured:")[1].split("Date Scanned:")[0]).strip("\n").strip(" ").replace("/", ""), "%m%d%Y").strftime("%Y-%m-%d"),
+                        "film_stock" : shared_link['album']["description"].split("Film Stock:")[1].split("Development Notes:")[0].split("Camera:")[0],
+                        "camera" : shared_link['album']["description"].split("Camera:")[1].split("Lens:")[0],
+                        "link" : "https://photos.drewsum.us/share/" + shared_link['key']
+                    }
+                )
+        except Exception as e:
+            print(e)
+            pass
 
     # sort by capture date
     sorted_immich_data = sorted(immich_data, key=lambda x: x['date'], reverse=True)
