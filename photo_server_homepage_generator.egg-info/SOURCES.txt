@@ -1,0 +1,9 @@
+README.md
+photo_server_homepage_generator.py
+pyproject.toml
+photo_server_homepage_generator.egg-info/PKG-INFO
+photo_server_homepage_generator.egg-info/SOURCES.txt
+photo_server_homepage_generator.egg-info/dependency_links.txt
+photo_server_homepage_generator.egg-info/requires.txt
+photo_server_homepage_generator.egg-info/top_level.txt
+tests/test_photo_server_homepage_generator.py

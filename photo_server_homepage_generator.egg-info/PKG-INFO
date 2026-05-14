@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: photo-server-homepage-generator
+Version: 0.1.0
+Summary: Generate a photo server homepage from Immich shared links.
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: requests
+Requires-Dist: python-dotenv
+Requires-Dist: Jinja2
+
+# photo_server_homepage_generator
+Generate html for serving on nginx for immich photo server
