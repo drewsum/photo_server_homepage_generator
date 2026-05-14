@@ -1,4 +1,5 @@
 index.html
+example_output.html
 .env
 __pycache__/
 .pytest_cache/
