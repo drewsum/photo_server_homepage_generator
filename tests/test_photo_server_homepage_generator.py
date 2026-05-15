@@ -47,10 +47,14 @@ def test_build_album_data_includes_cover_thumbnail_if_available():
         "photo_server_homepage_generator.get_asset_thumbnail_data_url",
         return_value="data:image/png;base64,TEST",
     ):
-        with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com",
-                   return_value={}):
-            with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com",
-                       return_value={}):
+        with patch(
+            "photo_server_homepage_generator.get_film_types_from_filmtypes_com",
+            return_value={},
+        ):
+            with patch(
+                "photo_server_homepage_generator.get_cameras_from_filmtypes_com",
+                return_value={},
+            ):
                 shared_links = [
                     {
                         "key": "album-key",
@@ -122,10 +126,14 @@ def test_build_album_data_returns_public_albums_sorted_by_date():
         },
     ]
 
-    with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com",
-               return_value={}):
-        with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com",
-                   return_value={}):
+    with patch(
+        "photo_server_homepage_generator.get_film_types_from_filmtypes_com",
+        return_value={},
+    ):
+        with patch(
+            "photo_server_homepage_generator.get_cameras_from_filmtypes_com",
+            return_value={},
+        ):
             albums = build_album_data(
                 shared_links, share_base_url="https://photos.example/share"
             )
@@ -145,13 +153,21 @@ def test_build_album_data_returns_public_albums_sorted_by_date():
 
 
 def test_build_album_data_skips_malformed_public_albums():
-    with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com",
-               return_value={}):
-        with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com",
-                   return_value={}):
+    with patch(
+        "photo_server_homepage_generator.get_film_types_from_filmtypes_com",
+        return_value={},
+    ):
+        with patch(
+            "photo_server_homepage_generator.get_cameras_from_filmtypes_com",
+            return_value={},
+        ):
             albums = build_album_data(
-                [{"key": "bad", "album": {"albumName": "Bad",
-                                         "description": "Public: True"}}]
+                [
+                    {
+                        "key": "bad",
+                        "album": {"albumName": "Bad", "description": "Public: True"},
+                    }
+                ]
             )
 
     assert albums == []
@@ -185,7 +201,7 @@ def test_find_matching_film_type_returns_matching_url():
         "Kodak Portra 400": "https://www.filmtypes.com/films/kodak-portra-400",
         "Fujifilm Pro 400H": "https://www.filmtypes.com/films/fujifilm-pro-400h",
     }
-    
+
     result = find_matching_film_type("Portra 400", film_types)
     assert result == "https://www.filmtypes.com/films/kodak-portra-400"
 
@@ -194,7 +210,7 @@ def test_find_matching_film_type_returns_none_for_no_match():
     film_types = {
         "Kodak Portra 400": "https://www.filmtypes.com/films/kodak-portra-400",
     }
-    
+
     result = find_matching_film_type("Unknown Film", film_types)
     assert result is None
 
@@ -209,7 +225,7 @@ def test_find_matching_camera_returns_matching_url():
         "Nikon F3": "https://www.filmtypes.com/cameras/nikon-f3",
         "Leica M6": "https://www.filmtypes.com/cameras/leica-m6",
     }
-    
+
     result = find_matching_camera("Nikon F3", cameras)
     assert result == "https://www.filmtypes.com/cameras/nikon-f3"
 
@@ -218,7 +234,7 @@ def test_find_matching_camera_returns_none_for_no_match():
     cameras = {
         "Nikon F3": "https://www.filmtypes.com/cameras/nikon-f3",
     }
-    
+
     result = find_matching_camera("Unknown Camera", cameras)
     assert result is None
 

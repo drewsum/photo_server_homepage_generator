@@ -105,8 +105,9 @@ def get_film_types_from_filmtypes_com():
 
         # Cache the results for future use
         _film_types_cache = film_types
-        console.print(f"[green]✓[/green] Loaded [bold]{len(film_types)}[/bold] "
-                      "film types")
+        console.print(
+            f"[green]✓[/green] Loaded [bold]{len(film_types)}[/bold] " "film types"
+        )
         return film_types
 
     except Exception as error:
@@ -393,8 +394,10 @@ def get_asset_thumbnail_data_url(server_url, api_key, asset_id):
         _thumbnail_cache[cache_key] = data_url
         return data_url
     except Exception as error:
-        console.print(f"[yellow]⚠[/yellow] Could not fetch thumbnail for "
-                      f"asset {asset_id}: {error}")
+        console.print(
+            f"[yellow]⚠[/yellow] Could not fetch thumbnail for "
+            f"asset {asset_id}: {error}"
+        )
         return None
 
 
@@ -440,7 +443,8 @@ def build_album_data(
 
     # Filter for public albums only (marked with "Public: True" in description)
     public_links = [
-        link for link in shared_links
+        link
+        for link in shared_links
         if "Public: True" in link.get("album", {}).get("description", "")
     ]
 
@@ -483,9 +487,12 @@ def build_album_data(
                 # Extract film stock from structured description format
                 # Format: "Film Stock: [name] Development Notes: [notes]
                 # Camera: [camera]"
-                film_stock = (description.split("Film Stock:")[1]
-                              .split("Development Notes:")[0]
-                              .split("Camera:")[0].strip())
+                film_stock = (
+                    description.split("Film Stock:")[1]
+                    .split("Development Notes:")[0]
+                    .split("Camera:")[0]
+                    .strip()
+                )
                 film_type_url = find_matching_film_type(film_stock, film_types_dict)
 
                 # Extract camera from structured description format
@@ -631,8 +638,9 @@ def main():
         progress.add_task("Getting shared links from Immich...", total=None)
         shared_links_list = get_all_shared_links(immich_api_key, immich_server_url)
 
-    console.print(f"[green]✓[/green] Found [bold]{len(shared_links_list)}"
-                  "[/bold] shared links")
+    console.print(
+        f"[green]✓[/green] Found [bold]{len(shared_links_list)}" "[/bold] shared links"
+    )
     console.print(Rule(style="dim"))
 
     # Process albums: fetch thumbnails, match film/camera types, build data structures
@@ -643,8 +651,10 @@ def main():
         immich_api_key=immich_api_key,
     )
 
-    console.print(f"[green]✓[/green] Processed [bold]{len(sorted_immich_data)}"
-                  "[/bold] public albums")
+    console.print(
+        f"[green]✓[/green] Processed [bold]{len(sorted_immich_data)}"
+        "[/bold] public albums"
+    )
     console.print(Rule(style="dim"))
 
     # Render the HTML homepage using Jinja2 template
@@ -668,8 +678,9 @@ def main():
     summary_table.add_row("[bold]Shared Links:[/bold]", str(len(shared_links_list)))
     summary_table.add_row("[bold]Public Albums:[/bold]", str(len(sorted_immich_data)))
     summary_table.add_row("[bold]Output:[/bold]", DEFAULT_OUTPUT_PATH)
-    summary_table.add_row("[bold]Generated:[/bold]",
-                          datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    summary_table.add_row(
+        "[bold]Generated:[/bold]", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
 
     console.print(
         Panel(
