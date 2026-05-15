@@ -3,13 +3,70 @@ import os
 from datetime import datetime
 
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
+from rapidfuzz import fuzz
 
 DEFAULT_OUTPUT_PATH = "/output/index.html"
 DEFAULT_SHARE_BASE_URL = "https://photos.drewsum.us/share"
 
 _thumbnail_cache = {}
+_film_types_cache = None
+
+
+def get_film_types_from_filmtypes_com():
+    """Scrape all film types from filmtypes.com and return a dict of name -> url."""
+    global _film_types_cache
+    
+    if _film_types_cache is not None:
+        return _film_types_cache
+    
+    try:
+        response = requests.get("https://www.filmtypes.com/films", timeout=30)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, "html.parser")
+        
+        # Find all film links - they appear to be in anchor tags with film names
+        film_types = {}
+        
+        # Look for links in the format /films/film-name
+        for link in soup.find_all("a", href=True):
+            href = link.get("href", "")
+            if href.startswith("/films/") and href != "/films":
+                # Extract the film name from the link text
+                film_name = link.get_text(strip=True)
+                if film_name and film_name.lower() != "all film stocks":
+                    # Normalize the film name
+                    film_types[film_name] = f"https://www.filmtypes.com{href}"
+        
+        _film_types_cache = film_types
+        print(f"Loaded {len(film_types)} film types from filmtypes.com")
+        return film_types
+    except Exception as error:
+        print(f"Could not fetch film types from filmtypes.com: {error}")
+        return {}
+
+
+def find_matching_film_type(film_stock, film_types_dict):
+    """Use fuzzy matching to find the best matching film type URL."""
+    if not film_stock or not film_types_dict:
+        return None
+    
+    best_match = None
+    best_score = 0
+    threshold = 85  # Minimum similarity score
+    
+    for film_name, film_url in film_types_dict.items():
+        # Use token_set_ratio for better matching with slightly different names
+        score = fuzz.token_set_ratio(film_stock.lower(), film_name.lower())
+        
+        if score > best_score and score >= threshold:
+            best_score = score
+            best_match = film_url
+    
+    return best_match
 
 
 def get_all_shared_links(api_key, url):
@@ -84,6 +141,8 @@ def build_album_data(
     immich_server_url=None,
     immich_api_key=None,
 ):
+    film_types_dict = get_film_types_from_filmtypes_com()
+    
     immich_data = []
     for shared_link in shared_links:
         try:
@@ -97,16 +156,17 @@ def build_album_data(
                 immich_server_url, immich_api_key, cover_asset_id
             )
 
+            film_stock = description.split("Film Stock:")[1].split("Development Notes:")[0].split("Camera:")[0].strip()
+            film_type_url = find_matching_film_type(film_stock, film_types_dict)
+
             immich_data.append(
                 {
                     "name": album["albumName"].split(" (")[0],
                     "cover_thumbnail": cover_thumbnail,
                     "description": description.split("Date Captured:")[0],
                     "date": parse_capture_date(description),
-                    "film_stock": description.split("Film Stock:")[1]
-                    .split("Development Notes:")[0]
-                    .split("Camera:")[0]
-                    .strip(),
+                    "film_stock": film_stock,
+                    "film_type_url": film_type_url,
                     "camera": description.split("Camera:")[1].split("Lens:")[0].strip(),
                     "link": f"{share_base_url}/{shared_link['key']}",
                 }
