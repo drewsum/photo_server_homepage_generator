@@ -13,6 +13,7 @@ DEFAULT_SHARE_BASE_URL = "https://photos.drewsum.us/share"
 
 _thumbnail_cache = {}
 _film_types_cache = None
+_cameras_cache = None
 
 
 def get_film_types_from_filmtypes_com():
@@ -65,6 +66,60 @@ def find_matching_film_type(film_stock, film_types_dict):
         if score > best_score and score >= threshold:
             best_score = score
             best_match = film_url
+    
+    return best_match
+
+
+def get_cameras_from_filmtypes_com():
+    """Scrape all cameras from filmtypes.com and return a dict of name -> url."""
+    global _cameras_cache
+    
+    if _cameras_cache is not None:
+        return _cameras_cache
+    
+    try:
+        response = requests.get("https://www.filmtypes.com/cameras", timeout=30)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, "html.parser")
+        
+        # Find all camera links - they appear to be in anchor tags with camera names
+        cameras = {}
+        
+        # Look for links in the format /cameras/camera-name
+        for link in soup.find_all("a", href=True):
+            href = link.get("href", "")
+            if href.startswith("/cameras/") and href != "/cameras":
+                # Extract the camera name from the link text
+                camera_name = link.get_text(strip=True)
+                if camera_name and camera_name.lower() != "all film cameras":
+                    # Normalize the camera name
+                    cameras[camera_name] = f"https://www.filmtypes.com{href}"
+        
+        _cameras_cache = cameras
+        print(f"Loaded {len(cameras)} cameras from filmtypes.com")
+        return cameras
+    except Exception as error:
+        print(f"Could not fetch cameras from filmtypes.com: {error}")
+        return {}
+
+
+def find_matching_camera(camera_name, cameras_dict):
+    """Use fuzzy matching to find the best matching camera URL."""
+    if not camera_name or not cameras_dict:
+        return None
+    
+    best_match = None
+    best_score = 0
+    threshold = 85  # Minimum similarity score
+    
+    for cam_name, cam_url in cameras_dict.items():
+        # Use token_set_ratio for better matching with slightly different names
+        score = fuzz.token_set_ratio(camera_name.lower(), cam_name.lower())
+        
+        if score > best_score and score >= threshold:
+            best_score = score
+            best_match = cam_url
     
     return best_match
 
@@ -142,6 +197,7 @@ def build_album_data(
     immich_api_key=None,
 ):
     film_types_dict = get_film_types_from_filmtypes_com()
+    cameras_dict = get_cameras_from_filmtypes_com()
     
     immich_data = []
     for shared_link in shared_links:
@@ -158,6 +214,9 @@ def build_album_data(
 
             film_stock = description.split("Film Stock:")[1].split("Development Notes:")[0].split("Camera:")[0].strip()
             film_type_url = find_matching_film_type(film_stock, film_types_dict)
+            
+            camera = description.split("Camera:")[1].split("Lens:")[0].strip()
+            camera_url = find_matching_camera(camera, cameras_dict)
 
             immich_data.append(
                 {
@@ -167,7 +226,8 @@ def build_album_data(
                     "date": parse_capture_date(description),
                     "film_stock": film_stock,
                     "film_type_url": film_type_url,
-                    "camera": description.split("Camera:")[1].split("Lens:")[0].strip(),
+                    "camera": camera,
+                    "camera_url": camera_url,
                     "link": f"{share_base_url}/{shared_link['key']}",
                 }
             )

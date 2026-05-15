@@ -144,7 +144,15 @@
                           {{ album.film_stock }}
                         {% endif %}
                       </td>
-                      <td>{{ album.camera }}</td>
+                      <td>
+                        {% if album.camera_url %}
+                          <a href="{{ album.camera_url | e }}" target="_blank" rel="noopener noreferrer" class="link-light">
+                            {{ album.camera }}
+                          </a>
+                        {% else %}
+                          {{ album.camera }}
+                        {% endif %}
+                      </td>
                     </tr>
                   {% endfor %}
                 {% else %}
