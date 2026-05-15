@@ -47,8 +47,10 @@ def test_build_album_data_includes_cover_thumbnail_if_available():
         "photo_server_homepage_generator.get_asset_thumbnail_data_url",
         return_value="data:image/png;base64,TEST",
     ):
-        with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com", return_value={}):
-            with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com", return_value={}):
+        with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com",
+                   return_value={}):
+            with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com",
+                       return_value={}):
                 shared_links = [
                     {
                         "key": "album-key",
@@ -120,8 +122,10 @@ def test_build_album_data_returns_public_albums_sorted_by_date():
         },
     ]
 
-    with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com", return_value={}):
-        with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com", return_value={}):
+    with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com",
+               return_value={}):
+        with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com",
+                   return_value={}):
             albums = build_album_data(
                 shared_links, share_base_url="https://photos.example/share"
             )
@@ -141,10 +145,13 @@ def test_build_album_data_returns_public_albums_sorted_by_date():
 
 
 def test_build_album_data_skips_malformed_public_albums():
-    with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com", return_value={}):
-        with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com", return_value={}):
+    with patch("photo_server_homepage_generator.get_film_types_from_filmtypes_com",
+               return_value={}):
+        with patch("photo_server_homepage_generator.get_cameras_from_filmtypes_com",
+                   return_value={}):
             albums = build_album_data(
-                [{"key": "bad", "album": {"albumName": "Bad", "description": "Public: True"}}]
+                [{"key": "bad", "album": {"albumName": "Bad",
+                                         "description": "Public: True"}}]
             )
 
     assert albums == []
