@@ -190,7 +190,6 @@
 
       function filterTableByColumns() {
         const filterInputs = document.querySelectorAll('.filter-row input');
-        const filterValues = Array.from(filterInputs).map((input) => input.value.trim().toUpperCase());
         const rows = document.querySelectorAll('#albumTable tbody tr');
         const globalFilter = document.getElementById('searchInput').value.trim().toUpperCase();
 
@@ -207,16 +206,19 @@
             matchesGlobalFilter = rowText.includes(globalFilter);
           }
 
-          // Check column-specific filters
-          for (let i = 0; i < filterValues.length; i++) {
-            if (filterValues[i]) {
-              const cellText = cells[i] ? cells[i].textContent.trim().toUpperCase() : '';
-              if (!cellText.includes(filterValues[i])) {
-                matchesColumnFilters = false;
-                break;
-              }
+          // Check column-specific filters using data-column attributes
+          filterInputs.forEach((input) => {
+            const filterValue = input.value.trim().toUpperCase();
+            if (!filterValue) {
+              return;
             }
-          }
+
+            const columnIndex = Number(input.dataset.column);
+            const cellText = cells[columnIndex] ? cells[columnIndex].textContent.trim().toUpperCase() : '';
+            if (!cellText.includes(filterValue)) {
+              matchesColumnFilters = false;
+            }
+          });
 
           row.style.display = matchesGlobalFilter && matchesColumnFilters ? '' : 'none';
         });
