@@ -11,4 +11,4 @@ RUN pip install -r requirements.txt
 # Copy the application code
 COPY . .
 
-ENTRYPOINT ["python", "photo_server_homepage_generator"]
+ENTRYPOINT ["python", "photo_server_homepage_generator.py"]
