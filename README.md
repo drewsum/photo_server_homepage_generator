@@ -29,7 +29,7 @@ The container must include:
 
 ## Within Truenas Scale:
 
-The container can be built from within the Truenas Scale shell via docker file. Run `docker build -t photo-home-page-gen`
+The container can be built from within the Truenas Scale shell via docker file. Run `docker build -t photo-home-page-gen .`
 
 Then, set up a cron within truenas scale, running this bash command to run the container: `sudo docker run --volume /mnt/drewpool/drewset/photo-server-landing-page:/output photo-home-page-gen`
 
