@@ -37,7 +37,7 @@ from rich.rule import Rule
 from rich.table import Table
 
 # Global console instance for rich terminal output
-console = Console()
+console = Console(force_terminal=True)
 
 # Default paths and URLs - can be overridden by environment variables
 DEFAULT_OUTPUT_PATH = "/output/index.html"
