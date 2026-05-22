@@ -31,7 +31,7 @@ The container must include:
 
 The container can be built from within the Truenas Scale shell via docker file. Run `sudo docker build -t photo-home-page-gen .`
 
-Then, set up a cron within truenas scale, running this bash command to run the container: `sudo docker run --volume /mnt/drewpool/drewset/photo-server-landing-page:/output photo-home-page-gen`
+Then, set up a cron within truenas scale, running this bash command to run the container: `sudo docker run --rm --volume /mnt/drewpool/drewset/photo-server-landing-page:/output photo-home-page-gen`
 
 This will run the container and mount the container's output folder within the container to /mnt/drewpool/drewset/photo-server-landing-page, which is where an nginx server is looking for html to serve
 
