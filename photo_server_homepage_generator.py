@@ -23,6 +23,8 @@ Dependencies:
 
 import base64
 import os
+import random
+import re
 from datetime import datetime
 
 import requests
@@ -40,8 +42,15 @@ from rich.table import Table
 console = Console(force_terminal=True)
 
 # Default paths and URLs - can be overridden by environment variables
+DEFAULT_OUTPUT_DIR = "/output"
 DEFAULT_OUTPUT_PATH = "/output/index.html"
 DEFAULT_SHARE_BASE_URL = "https://photos.drewsum.us/share"
+ALBUM_PAGES_SUBDIR = "albums"
+
+# CSS grid size classes for randomized album page image tiles, and their
+# relative weights (most tiles are small, with occasional larger standouts)
+ASSET_SIZE_CLASSES = ["size-sm", "size-md", "size-lg"]
+ASSET_SIZE_WEIGHTS = [65, 25, 10]
 
 # Caching dictionaries to avoid repeated API calls and web scraping
 _thumbnail_cache = {}  # Cache for album cover thumbnails
@@ -290,6 +299,65 @@ def get_all_shared_links(api_key, url):
     return response.json()
 
 
+def get_album_assets(url, api_key, album_id):
+    """
+    Fetch every asset belonging to an album, by the album's Immich ID.
+
+    The list endpoint (`/api/shared-links`) only returns a single preview
+    asset per album-type shared link. The shared-link and album detail
+    endpoints (`/api/shared-links/me`, `/api/albums/{id}`) are supposed to
+    return the full asset list, but for some albums they return an empty
+    "assets" array even though the album's assetCount is correct and the
+    assets themselves still exist and load fine -- an Immich data quirk
+    (observed on albums created before an Immich upgrade) unrelated to this
+    script. Searching by albumIds via `/api/search/metadata` reliably
+    returns every asset regardless of the album's age, so it's used here
+    instead, with cursor-based pagination in case an album ever exceeds a
+    single page of results.
+
+    Args:
+        url (str): Base URL of the Immich server
+        api_key (str): Immich API key for authentication
+        album_id (str): Immich album ID (not the shared-link key)
+
+    Returns:
+        list: List of asset objects from the Immich API
+
+    Raises:
+        requests.HTTPError: If the API request fails
+    """
+    server_url = url.rstrip("/")
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "x-api-key": api_key,
+    }
+
+    assets = []
+    page = None
+    while True:
+        payload = {"albumIds": [album_id]}
+        if page:
+            payload["page"] = page
+
+        response = requests.post(
+            f"{server_url}/api/search/metadata",
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+
+        result = response.json().get("assets", {})
+        assets.extend(result.get("items", []) or [])
+
+        page = result.get("nextPage")
+        if not page:
+            break
+
+    return assets
+
+
 def load_config():
     """
     Load configuration from environment variables.
@@ -351,6 +419,74 @@ def parse_capture_date(description):
     return datetime.strptime(date_text, "%m%d%Y").strftime("%Y-%m-%d")
 
 
+def parse_album_metadata(description):
+    """
+    Parse every "Key: Value" metadata line from an album description.
+
+    Album descriptions store structured metadata (film stock, camera,
+    exposure settings, development notes, etc.) as one "Key: Value" pair per
+    line, starting at "Date Captured:" and preceded by a free-text
+    title/notes preamble. This extracts every such pair in the order they
+    appear, so newly added fields show up automatically without code
+    changes. "Public" is excluded since it is a visibility flag rather than
+    displayable metadata.
+
+    Args:
+        description (str): Album description from the Immich API
+
+    Returns:
+        list[tuple[str, str]]: (label, value) pairs in description order
+    """
+    if "Date Captured:" not in description:
+        return []
+
+    # Ignore any free-text title/notes before the structured metadata block
+    structured_block = "Date Captured:" + description.split("Date Captured:", 1)[1]
+
+    metadata = []
+    for line in structured_block.splitlines():
+        match = re.match(r"^([A-Za-z][A-Za-z0-9 /]*):\s*(.*)$", line.strip())
+        if not match:
+            continue
+        label, value = match.group(1).strip(), match.group(2).strip()
+        if not value or label.lower() == "public":
+            continue
+        metadata.append((label, value))
+
+    return metadata
+
+
+def build_album_display_metadata(metadata_pairs, film_type_url=None, camera_url=None):
+    """
+    Turn parsed description metadata into display-ready rows for an album page.
+
+    Attaches the matched filmtypes.com URL to the "Film Stock" and "Camera"
+    rows so they render as hyperlinks, and drops "Date Captured" since it is
+    already shown separately as the album's formatted capture date.
+
+    Args:
+        metadata_pairs (list[tuple[str, str]]): Pairs from
+            parse_album_metadata()
+        film_type_url (str or None): Matched filmtypes.com film URL
+        camera_url (str or None): Matched filmtypes.com camera URL
+
+    Returns:
+        list[dict]: Rows with "label", "value", and "url" (or None)
+    """
+    metadata = []
+    for label, value in metadata_pairs:
+        if label.lower() == "date captured":
+            continue
+        url = None
+        if label.lower() == "film stock":
+            url = film_type_url
+        elif label.lower() == "camera":
+            url = camera_url
+        metadata.append({"label": label, "value": value, "url": url})
+
+    return metadata
+
+
 def get_asset_thumbnail_data_url(server_url, api_key, asset_id):
     """
     Fetch an asset thumbnail and return it as a base64 data URL.
@@ -401,6 +537,51 @@ def get_asset_thumbnail_data_url(server_url, api_key, asset_id):
         return None
 
 
+def build_album_page_assets(raw_assets, immich_server_url, share_key):
+    """
+    Build the list of viewable images for an album's page.
+
+    Immich serves shared-link assets publicly when the shared link's key is
+    passed as a query parameter, so image URLs can point directly at the
+    Immich server instead of being embedded as base64 data.
+
+    Args:
+        raw_assets (list): Asset objects for the album, as returned by
+            get_shared_link_assets()
+        immich_server_url (str): Immich server base URL
+        share_key (str): Shared link key used to authorize public asset access
+
+    Returns:
+        list: List of dicts with "thumbnail_url", "original_url",
+              "filename", and a randomly assigned "size_class" (used to vary
+              each image's rendered size on the album page) for each asset
+    """
+    if not immich_server_url or not share_key:
+        return []
+
+    server_url = immich_server_url.rstrip("/")
+    assets = []
+    for asset in raw_assets or []:
+        asset_id = asset.get("id")
+        if not asset_id:
+            continue
+        assets.append(
+            {
+                "filename": asset.get("originalFileName", ""),
+                "thumbnail_url": (
+                    f"{server_url}/api/assets/{asset_id}/thumbnail?key={share_key}"
+                ),
+                "original_url": (
+                    f"{server_url}/api/assets/{asset_id}/original?key={share_key}"
+                ),
+                "size_class": random.choices(
+                    ASSET_SIZE_CLASSES, weights=ASSET_SIZE_WEIGHTS
+                )[0],
+            }
+        )
+    return assets
+
+
 def build_album_data(
     shared_links,
     share_base_url=DEFAULT_SHARE_BASE_URL,
@@ -414,10 +595,11 @@ def build_album_data(
     This is the core data processing function that transforms raw Immich
     shared
     link data into enriched album objects with thumbnails, film type hyperlinks,
-    and camera hyperlinks. The function processes albums in three phases:
+    and camera hyperlinks. The function processes albums in four phases:
     1. Fetch album cover thumbnails
-    2. Match film stocks and cameras to filmtypes.com
-    3. Build final album data structures
+    2. Fetch full asset lists for each album's page
+    3. Match film stocks and cameras to filmtypes.com
+    4. Build final album data structures
 
     Args:
         shared_links (list): List of shared link objects from Immich API
@@ -436,6 +618,13 @@ def build_album_data(
               - camera: Extracted camera name
               - camera_url: URL to camera page (if matched)
               - link: Full share link URL
+              - page_url: Relative link to this album's generated page
+              - assets: List of viewable images for the album page, each
+                with thumbnail_url, original_url, filename, and size_class
+              - metadata: All "Key: Value" fields parsed from the
+                description, as display-ready {label, value, url} rows
+              - newer_album / older_album: {name, filename} of the
+                chronologically adjacent album, or None at either end
     """
     # Fetch film and camera reference data from filmtypes.com
     film_types_dict = get_film_types_from_filmtypes_com()
@@ -474,7 +663,27 @@ def build_album_data(
             finally:
                 progress.update(thumb_task, advance=1)
 
-        # Phase 2: Match film and camera information to filmtypes.com
+        # Phase 2: Pull full asset lists for each album's page
+        assets_task = progress.add_task(
+            "[cyan]Pulling album images...", total=len(public_links)
+        )
+        album_assets = {}
+        for shared_link in public_links:
+            try:
+                album_assets[shared_link["key"]] = (
+                    get_album_assets(
+                        immich_server_url, immich_api_key, shared_link["album"]["id"]
+                    )
+                    if immich_server_url and immich_api_key
+                    else []
+                )
+            except Exception as error:
+                console.print(f"[yellow]⚠[/yellow] Album images error: {error}")
+                album_assets[shared_link["key"]] = []
+            finally:
+                progress.update(assets_task, advance=1)
+
+        # Phase 3: Match film and camera information to filmtypes.com
         match_task = progress.add_task(
             "[magenta]Matching film & camera types...", total=len(public_links)
         )
@@ -484,19 +693,14 @@ def build_album_data(
                 album = shared_link["album"]
                 description = album["description"]
 
-                # Extract film stock from structured description format
-                # Format: "Film Stock: [name] Development Notes: [notes]
-                # Camera: [camera]"
-                film_stock = (
-                    description.split("Film Stock:")[1]
-                    .split("Development Notes:")[0]
-                    .split("Camera:")[0]
-                    .strip()
-                )
+                # Parse every "Key: Value" metadata line from the description
+                metadata_pairs = parse_album_metadata(description)
+                metadata_dict = dict(metadata_pairs)
+
+                film_stock = metadata_dict.get("Film Stock", "")
                 film_type_url = find_matching_film_type(film_stock, film_types_dict)
 
-                # Extract camera from structured description format
-                camera = description.split("Camera:")[1].split("Lens:")[0].strip()
+                camera = metadata_dict.get("Camera", "")
                 camera_url = find_matching_camera(camera, cameras_dict)
 
                 # Store matching results for this album
@@ -505,6 +709,7 @@ def build_album_data(
                     "film_type_url": film_type_url,
                     "camera": camera,
                     "camera_url": camera_url,
+                    "metadata_pairs": metadata_pairs,
                 }
             except Exception as error:
                 console.print(f"[yellow]⚠[/yellow] Matching error: {error}")
@@ -512,7 +717,7 @@ def build_album_data(
             finally:
                 progress.update(match_task, advance=1)
 
-        # Phase 3: Build final album data structures
+        # Phase 4: Build final album data structures
         build_task = progress.add_task(
             "[green]Building album data...", total=len(public_links)
         )
@@ -541,7 +746,19 @@ def build_album_data(
                         "camera": match_data.get("camera", ""),
                         "camera_url": match_data.get("camera_url"),
                         "link": f"{share_base_url}/{album_key}",
-                        # Full share link
+                        # Full Immich share link
+                        "page_url": f"{ALBUM_PAGES_SUBDIR}/{album_key}.html",
+                        # Relative link to this album's generated page
+                        "assets": build_album_page_assets(
+                            album_assets.get(album_key, []),
+                            immich_server_url,
+                            album_key,
+                        ),
+                        "metadata": build_album_display_metadata(
+                            match_data.get("metadata_pairs", []),
+                            match_data.get("film_type_url"),
+                            match_data.get("camera_url"),
+                        ),
                     }
                 )
             except (KeyError, IndexError, ValueError) as error:
@@ -549,8 +766,50 @@ def build_album_data(
             finally:
                 progress.update(build_task, advance=1)
 
-    # Return albums sorted by date (newest first)
-    return sorted(immich_data, key=lambda x: x["date"], reverse=True)
+    # Sort albums by date (newest first) and link each to its neighbors
+    # so album pages can offer "newer"/"older" navigation
+    sorted_data = sorted(immich_data, key=lambda x: x["date"], reverse=True)
+    attach_adjacent_album_links(sorted_data)
+    return sorted_data
+
+
+def attach_adjacent_album_links(sorted_albums):
+    """
+    Attach "newer_album" and "older_album" links to each album in place.
+
+    Given albums sorted newest-first, each album is linked to its neighbors
+    in that order so an album page can offer chronological prev/next
+    navigation without needing the full album list at render time.
+
+    All album pages are written flat into the same ALBUM_PAGES_SUBDIR
+    directory, so a link from one album page to another only needs the
+    target's filename, not its "page_url" (which is relative to the output
+    root, for the homepage's use, and would double up the subdirectory if
+    reused here).
+
+    Args:
+        sorted_albums (list): Album dictionaries sorted by date, newest
+            first, each containing "name" and "page_url"
+
+    Returns:
+        list: The same list, mutated in place, for convenience
+    """
+    for index, album in enumerate(sorted_albums):
+        newer = sorted_albums[index - 1] if index > 0 else None
+        older = (
+            sorted_albums[index + 1] if index < len(sorted_albums) - 1 else None
+        )
+        album["newer_album"] = (
+            {"name": newer["name"], "filename": newer["page_url"].rsplit("/", 1)[-1]}
+            if newer
+            else None
+        )
+        album["older_album"] = (
+            {"name": older["name"], "filename": older["page_url"].rsplit("/", 1)[-1]}
+            if older
+            else None
+        )
+    return sorted_albums
 
 
 def render_homepage(album_data, generated_at=None, template_dir="./templates/"):
@@ -606,6 +865,49 @@ def write_homepage(output_text, output_path=DEFAULT_OUTPUT_PATH):
         output_file.write(output_text)
 
 
+def render_album_pages(album_data, generated_at=None, template_dir="./templates/"):
+    """
+    Render an individual HTML page for each album using the album Jinja2 template.
+
+    Args:
+        album_data (list): List of album dictionaries from build_album_data()
+        generated_at (datetime): Timestamp for when the pages were generated
+        template_dir (str): Directory containing the template files
+
+    Returns:
+        dict: Mapping of album "page_url" to rendered HTML content
+    """
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template("album.html")
+
+    generated_at = generated_at or datetime.now()
+    date_string = generated_at.strftime("%Y-%m-%d %H:%M:%S")
+
+    pages = {}
+    for album in album_data:
+        html_data = {"album": album, "date": date_string}
+        pages[album["page_url"]] = template.render(input_data=html_data)
+
+    return pages
+
+
+def write_album_pages(pages, output_dir=DEFAULT_OUTPUT_DIR):
+    """
+    Write rendered album pages to disk, relative to the output directory.
+
+    Args:
+        pages (dict): Mapping of relative "page_url" to rendered HTML content,
+                       as returned by render_album_pages()
+        output_dir (str): Directory that index.html is written to; album pages
+                           are written beneath it at their page_url path
+    """
+    for page_url, page_html in pages.items():
+        output_path = os.path.join(output_dir, *page_url.split("/"))
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, mode="w") as output_file:
+            output_file.write(page_html)
+
+
 def main():
     """
     Main entry point for the Photo Server Homepage Generator.
@@ -657,12 +959,16 @@ def main():
     )
     console.print(Rule(style="dim"))
 
-    # Render the HTML homepage using Jinja2 template
+    # Render the HTML homepage and per-album pages using Jinja2 templates
     console.print("\n[bold]Rendering[/bold]")
     output_text = render_homepage(sorted_immich_data)
     console.print("[green]✓[/green] Homepage rendered")
+    album_pages = render_album_pages(sorted_immich_data)
+    console.print(
+        f"[green]✓[/green] Rendered [bold]{len(album_pages)}[/bold] album pages"
+    )
 
-    # Write the rendered HTML to output file
+    # Write the rendered HTML to output file(s)
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -670,7 +976,9 @@ def main():
     ) as progress:
         progress.add_task("Writing index.html...", total=None)
         write_homepage(output_text)
-    console.print("[green]✓[/green] Homepage written to disk")
+        progress.add_task("Writing album pages...", total=None)
+        write_album_pages(album_pages)
+    console.print("[green]✓[/green] Homepage and album pages written to disk")
     console.print(Rule(style="dim"))
 
     # Display completion summary in a formatted panel

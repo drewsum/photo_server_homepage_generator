@@ -69,6 +69,67 @@
       .footer-text {
         color: #adb5bd;
       }
+
+      /* Stack the album table into cards on narrow screens. The markup
+         (and the search/filter JS, which targets rows/cells by index) is
+         unchanged; only the presentation switches. */
+      @media (max-width: 767.98px) {
+        .album-table thead {
+          display: none;
+        }
+
+        .album-table,
+        .album-table tbody,
+        .album-table tr,
+        .album-table td {
+          display: block;
+          width: 100%;
+        }
+
+        .album-table tbody tr {
+          margin-bottom: 1rem;
+          padding: 0.75rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .album-table td {
+          text-align: right;
+          padding-left: 45%;
+          position: relative;
+          border: none;
+        }
+
+        .album-table td::before {
+          content: attr(data-label);
+          position: absolute;
+          left: 0.75rem;
+          text-align: left;
+          font-weight: 600;
+          color: #adb5bd;
+        }
+
+        .album-table td.cover-cell {
+          text-align: center;
+          padding-left: 0.75rem;
+        }
+
+        .album-table td.cover-cell::before {
+          display: none;
+        }
+
+        .album-table td.description-cell {
+          text-align: left;
+          padding-left: 0.75rem;
+          max-width: none;
+        }
+
+        .album-table td.description-cell::before {
+          display: block;
+          position: static;
+          margin-bottom: 0.25rem;
+        }
+      }
     </style>
   </head>
 
@@ -121,21 +182,21 @@
                 {% if input_data.album_data %}
                   {% for album in input_data.album_data %}
                     <tr>
-                      <td>
-                        <a href="{{ album.link | e }}" target="_blank" rel="noopener noreferrer" class="link-light">
+                      <td data-label="Name">
+                        <a href="{{ album.page_url | e }}" class="link-light">
                           {{ album.name }}
                         </a>
                       </td>
-                      <td class="cover-cell text-center">
+                      <td class="cover-cell text-center" data-label="Cover">
                         {% if album.cover_thumbnail %}
                           <img src="{{ album.cover_thumbnail | e }}" alt="{{ album.name | e }} cover" class="cover-thumb" />
                         {% else %}
                           &mdash;
                         {% endif %}
                       </td>
-                      <td class="description-cell">{{ album.description }}</td>
-                      <td>{{ album.date }}</td>
-                      <td>
+                      <td class="description-cell" data-label="Description">{{ album.description }}</td>
+                      <td data-label="Date Captured">{{ album.date }}</td>
+                      <td data-label="Film Stock">
                         {% if album.film_type_url %}
                           <a href="{{ album.film_type_url | e }}" target="_blank" rel="noopener noreferrer" class="link-light">
                             {{ album.film_stock }}
@@ -144,7 +205,7 @@
                           {{ album.film_stock }}
                         {% endif %}
                       </td>
-                      <td>
+                      <td data-label="Camera">
                         {% if album.camera_url %}
                           <a href="{{ album.camera_url | e }}" target="_blank" rel="noopener noreferrer" class="link-light">
                             {{ album.camera }}
